@@ -36,6 +36,16 @@ from engine.context_intake import (
 )
 
 
+from engine.planner_v2 import (
+    get_planner_goal_options,
+    get_planner_read_type_options,
+    get_planner_sequencing_options,
+    get_planner_workflow_strategies,
+    materialize_planner_workflow,
+    should_suppress_legacy_functional_route,
+)
+
+
 # ==================================================
 # PATHS
 # ==================================================
@@ -511,6 +521,13 @@ def get_read_type_options(
         )
     )
 
+    values.extend(
+        get_planner_read_type_options(
+            sample_type,
+            sequencing,
+        )
+    )
+
     return unique_preserve_order(
         values
     )
@@ -610,6 +627,17 @@ def get_goal_options(
             data_state
             or
             RAW_READS
+        )
+    )
+
+    values.extend(
+        get_planner_goal_options(
+            sample_type,
+            sequencing,
+            read_type,
+            data_state
+            or
+            RAW_READS,
         )
     )
 
@@ -732,6 +760,13 @@ def get_workflow_strategies(
         )
     )
 
+    if should_suppress_legacy_functional_route(
+        sample_type,
+        data_state or RAW_READS,
+        goal,
+    ):
+        matches = []
+
     strategies = []
 
     for workflow_id, workflow in matches:
@@ -751,7 +786,13 @@ def get_workflow_strategies(
         )
 
     dynamic_strategies = (
-        get_dynamic_workflow_strategies(
+        []
+        if should_suppress_legacy_functional_route(
+            sample_type,
+            data_state or RAW_READS,
+            goal,
+        )
+        else get_dynamic_workflow_strategies(
             sample_type,
             sequencing,
             read_type,
@@ -799,6 +840,27 @@ def get_workflow_strategies(
         )
         not in
         existing_strategy_ids
+    )
+
+    planner_strategies = (
+        get_planner_workflow_strategies(
+            sample_type,
+            sequencing,
+            read_type,
+            goal,
+            data_state or RAW_READS,
+        )
+    )
+
+    existing_strategy_ids = {
+        item.get("id")
+        for item in strategies
+    }
+
+    strategies.extend(
+        item
+        for item in planner_strategies
+        if item.get("id") not in existing_strategy_ids
     )
 
     return strategies
@@ -1216,6 +1278,19 @@ def build_workflow(
         load_workflows()
     )
 
+    planner_workflow = (
+        materialize_planner_workflow(
+            sample_type,
+            sequencing,
+            read_type,
+            goal,
+            workflow_id,
+            data_state or RAW_READS,
+        )
+        if workflow_id is not None
+        else None
+    )
+
     context_workflow = (
         materialize_context_workflow(
             sample_type,
@@ -1228,7 +1303,10 @@ def build_workflow(
             RAW_READS,
             workflows
         )
-        if workflow_id is not None
+        if (
+            workflow_id is not None
+            and planner_workflow is None
+        )
         else None
     )
 
@@ -1249,7 +1327,12 @@ def build_workflow(
         else None
     )
 
-    if context_workflow is not None:
+    if planner_workflow is not None:
+
+        workflow = planner_workflow
+        workflow_id = planner_workflow["id"]
+
+    elif context_workflow is not None:
 
         workflow = context_workflow
         workflow_id = context_workflow["id"]
@@ -1260,6 +1343,13 @@ def build_workflow(
         workflow_id = dynamic_workflow["id"]
 
     elif workflow_id is not None:
+
+        if should_suppress_legacy_functional_route(
+            sample_type,
+            data_state or RAW_READS,
+            goal,
+        ):
+            return None
 
         workflow = (
             workflows.get(
@@ -1365,7 +1455,11 @@ def build_workflow(
         "route_class",
         "route_origin",
         "infer_read_inputs",
-        "data_state"
+        "data_state",
+        "planning_basis",
+        "planner_version",
+        "goal_target_artifact",
+        "evidence_basis"
     ):
 
         if metadata_key in workflow:
@@ -1738,6 +1832,10 @@ def get_sequencing_options(sample_type):
     )
 
     for value in _get_dynamic_sequencing_options_metagenome_v1(sample_type) or []:
+        if value not in values:
+            values.append(value)
+
+    for value in get_planner_sequencing_options(sample_type) or []:
         if value not in values:
             values.append(value)
 

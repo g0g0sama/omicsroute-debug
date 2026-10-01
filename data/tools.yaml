@@ -5,6 +5,7 @@ fastqc:
   - raw_read_qc
   sample_types:
   - Bacterial isolate
+  - Eukaryotic genome
   - Metagenome
   sequencing:
   - Illumina
@@ -29,6 +30,7 @@ fastp:
   - read_preprocessing
   sample_types:
   - Bacterial isolate
+  - Eukaryotic genome
   - Metagenome
   - Virome
   sequencing:
@@ -131,6 +133,7 @@ nanoplot:
   - raw_read_qc
   sample_types:
   - Bacterial isolate
+  - Eukaryotic genome
   - Metagenome
   - Virome
   - Bulk transcriptome
@@ -160,6 +163,7 @@ chopper:
   - read_preprocessing
   sample_types:
   - Bacterial isolate
+  - Eukaryotic genome
   - Metagenome
   - Virome
   - Bulk transcriptome
@@ -189,6 +193,7 @@ filtlong:
   - read_preprocessing
   sample_types:
   - Bacterial isolate
+  - Eukaryotic genome
   - Metagenome
   - Virome
   - Bulk transcriptome
@@ -2359,11 +2364,12 @@ hifiasm:
   official_docs: https://github.com/chhylp123/hifiasm
 masurca:
   name: MaSuRCA
-  description: 'Genome assembly framework supporting hybrid combinations of accurate short reads and long reads
-    for large and complex genome assembly.
+  description: 'Eukaryotic genome assembly framework supporting Illumina paired-end-only projects and hybrid
+    Illumina + Oxford Nanopore/PacBio projects.
 
     '
   operations:
+  - genome_assembly
   - hybrid_genome_assembly
   sample_types:
   - Eukaryotic genome

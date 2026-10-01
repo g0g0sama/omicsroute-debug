@@ -1076,6 +1076,10 @@ masurca:
   routes:
   - requires:
     - paired_fastq
+    produces:
+    - eukaryotic_genome_fasta
+  - requires:
+    - paired_fastq
     - long_fastq
     produces:
     - eukaryotic_genome_fasta
@@ -1364,6 +1368,11 @@ seqkit:
     - votu_representative_fasta
 braker4:
   routes:
+  - requires:
+    - masked_eukaryotic_genome_fasta
+    produces:
+    - eukaryotic_gene_annotation_gff
+    - eukaryotic_protein_fasta
   - requires:
     - masked_eukaryotic_genome_fasta
     - protein_evidence_fasta
