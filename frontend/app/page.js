@@ -1601,7 +1601,7 @@ function AboutPanel() {
       <div className="top-details-body about-grid">
         <section>
           <span className="section-number">About</span>
-          <h3>OmicsRoute v1.1.0</h3>
+          <h3>OmicsRoute v0.1.0-beta.1</h3>
           <p>
             OmicsRoute is a bioinformatics workflow planning and
             decision-support system. It recommends workflows and candidate
