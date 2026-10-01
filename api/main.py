@@ -64,6 +64,7 @@ from engine.scoring import (
 )
 from services.biotools import get_biotools_info
 from services.literature import search_tool_evidence
+from engine.workflow_research import research_workflow
 from services.ncbi_reference import (
     lookup_assembly_accession,
     reference_context_from_assembly,
@@ -126,6 +127,10 @@ class WorkflowInspectRequest(WorkflowRequest):
 class ToolEvidenceRequest(BaseModel):
     tool_name: str = Field(min_length=1)
     operation: str | None = None
+
+
+class WorkflowResearchRequest(WorkflowRequest):
+    years: int = Field(default=10, ge=1, le=30)
 
 
 class DiscoveryRequest(BaseModel):
@@ -956,6 +961,26 @@ def tool_evidence(request: ToolEvidenceRequest):
             for paper in ranked[:15]
         ],
     }
+
+
+@app.post("/v1/workflow-research")
+def workflow_research(request: WorkflowResearchRequest):
+    workflow_result = _build_workflow_from_request(request)
+    planned_operations = [
+        step.get("operation")
+        for step in workflow_result.get("steps", []) or []
+        if step.get("operation")
+    ]
+    sequencing, read_type = _execution_values(request)
+    return research_workflow(
+        sample_type=request.sample_type,
+        sequencing=sequencing,
+        read_type=read_type,
+        goal=request.goal,
+        data_state=request.data_state,
+        planned_operations=planned_operations,
+        years=request.years,
+    )
 
 
 @app.get("/v1/biotools")
