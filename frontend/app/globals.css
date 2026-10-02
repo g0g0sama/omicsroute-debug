@@ -2008,3 +2008,240 @@ footer span:first-child {
     bottom: 10px;
   }
 }
+
+
+/* === OMICSROUTE_WORKFLOW_LITERATURE_UI_V2_2 === */
+
+.workflow-literature {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 15px 0 18px;
+  padding: 14px;
+  border: 1px solid #cbdeda;
+  border-radius: 14px;
+  background: #f8fcfb;
+}
+
+.workflow-literature-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.workflow-literature-head h3 {
+  margin: 4px 0 0;
+  font-size: 0.93rem;
+}
+
+.workflow-literature-copy {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.68rem;
+  line-height: 1.5;
+}
+
+.literature-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.literature-operation-list,
+.literature-candidates {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.literature-operation-list > strong,
+.literature-candidates > strong {
+  font-size: 0.72rem;
+}
+
+.literature-operation-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.literature-operation-row > div {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-width: 0;
+}
+
+.literature-operation-row strong {
+  display: block;
+  font-size: 0.68rem;
+}
+
+.literature-operation-row small {
+  display: block;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 0.59rem;
+  line-height: 1.4;
+}
+
+.literature-dot {
+  flex: 0 0 auto;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+}
+
+.literature-dot-supported {
+  background: var(--good);
+}
+
+.literature-dot-missing {
+  background: #b7c1c2;
+}
+
+.literature-candidate {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid #ecd6a9;
+  border-radius: 10px;
+  background: #fffaf0;
+}
+
+.literature-candidate > div {
+  min-width: 0;
+}
+
+.literature-candidate strong,
+.literature-candidate span {
+  display: block;
+}
+
+.literature-candidate strong {
+  font-size: 0.68rem;
+}
+
+.literature-candidate span,
+.literature-candidates > small {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 0.59rem;
+  line-height: 1.4;
+}
+
+.literature-papers {
+  border-top: 1px solid rgba(120, 140, 143, 0.18);
+  padding-top: 3px;
+}
+
+.literature-papers > summary {
+  cursor: pointer;
+  color: var(--accent);
+  font-size: 0.66rem;
+  font-weight: 850;
+}
+
+.literature-papers > div {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 10px;
+}
+
+@media (max-width: 680px) {
+  .workflow-literature-head,
+  .literature-operation-row,
+  .literature-candidate {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .literature-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+/* === OMICSROUTE_COMPLETE_HYBRID_BLUEPRINT_V2_4 === */
+
+.decision-points {
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+  margin: 14px 0 18px;
+  padding: 14px;
+  border: 1px solid #e1d5b7;
+  border-radius: 14px;
+  background: #fffaf1;
+}
+
+.decision-points-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.decision-points-head h3 {
+  margin: 4px 0 0;
+  font-size: 0.93rem;
+}
+
+.decision-point-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.decision-point {
+  padding: 10px 11px;
+  border: 1px solid #eadfc8;
+  border-radius: 11px;
+  background: #fff;
+}
+
+.decision-point-title {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.decision-point-title > strong {
+  font-size: 0.72rem;
+}
+
+.decision-point p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.63rem;
+  line-height: 1.48;
+}
+
+.decision-point p strong {
+  color: var(--text);
+}
+
+.decision-point > a {
+  display: inline-block;
+  margin-top: 7px;
+  font-size: 0.61rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+@media (max-width: 680px) {
+  .decision-points-head,
+  .decision-point-title {
+    flex-direction: column;
+  }
+}

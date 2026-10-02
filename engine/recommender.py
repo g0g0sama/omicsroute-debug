@@ -45,6 +45,13 @@ from engine.planner_v2 import (
     should_suppress_legacy_functional_route,
 )
 
+from engine.planner_v3 import (
+    get_target_artifact_goal_options,
+    get_target_artifact_workflow_strategies,
+    materialize_target_artifact_workflow,
+)
+
+
 
 # ==================================================
 # PATHS
@@ -631,6 +638,17 @@ def get_goal_options(
     )
 
     values.extend(
+        get_target_artifact_goal_options(
+            sample_type,
+            sequencing,
+            read_type,
+            data_state
+            or
+            RAW_READS,
+        )
+    )
+
+    values.extend(
         get_planner_goal_options(
             sample_type,
             sequencing,
@@ -644,6 +662,20 @@ def get_goal_options(
     values = unique_preserve_order(
         values
     )
+
+    target_artifact_goals = get_target_artifact_goal_options(
+        sample_type,
+        sequencing,
+        read_type,
+        data_state or RAW_READS,
+    )
+
+    if target_artifact_goals:
+        values = [
+            value
+            for value in values
+            if value != "Hybrid genome assembly"
+        ]
 
     values = filter_goal_options(
         values,
@@ -750,6 +782,32 @@ def get_workflow_strategies(
     genuinely different end-to-end strategies instead
     of treating them as tool-level alternatives.
     """
+
+    target_artifact_strategies = (
+        get_target_artifact_workflow_strategies(
+            sample_type,
+            sequencing,
+            read_type,
+            goal,
+            data_state or RAW_READS,
+        )
+    )
+
+    if target_artifact_strategies:
+        return target_artifact_strategies
+
+    target_artifact_goals = get_target_artifact_goal_options(
+        sample_type,
+        sequencing,
+        read_type,
+        data_state or RAW_READS,
+    )
+
+    if (
+        target_artifact_goals
+        and goal == "Hybrid genome assembly"
+    ):
+        return []
 
     matches = (
         find_workflows(
@@ -1278,6 +1336,19 @@ def build_workflow(
         load_workflows()
     )
 
+    target_artifact_workflow = (
+        materialize_target_artifact_workflow(
+            sample_type,
+            sequencing,
+            read_type,
+            goal,
+            workflow_id,
+            data_state or RAW_READS,
+        )
+        if workflow_id is not None
+        else None
+    )
+
     planner_workflow = (
         materialize_planner_workflow(
             sample_type,
@@ -1287,7 +1358,10 @@ def build_workflow(
             workflow_id,
             data_state or RAW_READS,
         )
-        if workflow_id is not None
+        if (
+            workflow_id is not None
+            and target_artifact_workflow is None
+        )
         else None
     )
 
@@ -1305,6 +1379,7 @@ def build_workflow(
         )
         if (
             workflow_id is not None
+            and target_artifact_workflow is None
             and planner_workflow is None
         )
         else None
@@ -1321,13 +1396,19 @@ def build_workflow(
         )
         if (
             workflow_id is not None
+            and target_artifact_workflow is None
             and
             context_workflow is None
         )
         else None
     )
 
-    if planner_workflow is not None:
+    if target_artifact_workflow is not None:
+
+        workflow = target_artifact_workflow
+        workflow_id = target_artifact_workflow["id"]
+
+    elif planner_workflow is not None:
 
         workflow = planner_workflow
         workflow_id = planner_workflow["id"]
@@ -1459,7 +1540,8 @@ def build_workflow(
         "planning_basis",
         "planner_version",
         "goal_target_artifact",
-        "evidence_basis"
+        "evidence_basis",
+        "decision_points"
     ):
 
         if metadata_key in workflow:

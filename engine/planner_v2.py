@@ -20,7 +20,7 @@ HYBRID_PACBIO = "Illumina + PacBio"
 
 FUNCTIONAL_ANNOTATION = "Functional annotation"
 
-PLANNER_VERSION = "2.0-foundation"
+PLANNER_VERSION = "2.4-complete-hybrid-blueprint"
 
 _SUPPORTED_RAW_CONTEXTS = {
     (ILLUMINA, "Paired-end"),
@@ -38,6 +38,15 @@ _EVIDENCE_BASIS = [
         "supports": (
             "Illumina-only and Illumina + ONT/PacBio eukaryotic genome "
             "assembly routes."
+        ),
+    },
+    {
+        "kind": "official_documentation",
+        "resource": "Wengan",
+        "url": "https://github.com/adigenova/wengan",
+        "supports": (
+            "Hybrid Illumina + Oxford Nanopore/PacBio eukaryotic "
+            "genome assembly."
         ),
     },
     {
@@ -361,15 +370,16 @@ def _assembly_steps(
                     "eukaryotic genome assembly"
                 ),
                 "description": (
-                    "Combine paired-end Illumina reads with matched long reads "
-                    "using MaSuRCA. MaSuRCA supports both Nanopore and PacBio "
-                    "long reads in hybrid projects."
+                    "Combine paired-end Illumina reads with matched long reads. "
+                    "MaSuRCA and Wengan are curated alternatives for "
+                    "Illumina + ONT/PacBio hybrid eukaryotic assembly; "
+                    "ranking remains separate from compatibility."
                 ),
                 "context": {
                     "sequencing": [ILLUMINA, long_platform],
                     "read_type": ["Paired-end", "Long reads"],
                 },
-                "candidates": ["masurca"],
+                "candidates": ["masurca", "wengan"],
             }
         ]
 
@@ -441,6 +451,188 @@ def _post_assembly_steps(
             "candidates": ["eggnog_mapper"],
         },
     ]
+
+
+def _hybrid_post_assembly_steps(
+    evidence_guided: bool,
+) -> list[dict]:
+    gene_description = (
+        "Predict gene structures with BRAKER4 in protein-evidence (EP) mode "
+        "from the repeat-masked genome."
+        if evidence_guided
+        else
+        "Predict gene structures with BRAKER4 genome-only/ES mode. This is "
+        "a fallback when external transcript/protein evidence is unavailable "
+        "and should be interpreted more cautiously than evidence-guided "
+        "annotation."
+    )
+
+    return [
+        {
+            "operation": "assembly_qc",
+            "name": "Complementary assembly quality assessment",
+            "description": (
+                "Run structural assembly statistics and Illumina k-mer-based "
+                "reference-free quality assessment. QUAST and Merqury answer "
+                "different QC questions and are intentionally co-executed."
+            ),
+            "mode": "parallel",
+            "min_successful_candidates": 2,
+            "candidates": ["quast", "merqury"],
+        },
+        {
+            "operation": "contamination_screening",
+            "name": "Assembly contamination / cobiont screening",
+            "description": (
+                "Screen the assembly for contaminant or cobiont sequence before "
+                "committing to downstream structural and functional annotation. "
+                "Positive findings should trigger curation and re-QC."
+            ),
+            "candidates": ["blobtoolkit"],
+        },
+        {
+            "operation": "genome_quality_assessment",
+            "name": "Assembly completeness assessment",
+            "description": (
+                "Estimate biological completeness with an appropriate BUSCO "
+                "lineage after initial assembly QC."
+            ),
+            "candidates": ["busco"],
+        },
+        {
+            "operation": "repeat_discovery",
+            "name": "De novo repeat / TE library discovery",
+            "description": (
+                "Construct a species-specific repeat library. RepeatModeler "
+                "and EDTA are alternative curated strategies; EDTA provides a "
+                "more TE-focused integrated route."
+            ),
+            "candidates": ["repeatmodeler", "edta"],
+        },
+        {
+            "operation": "repeat_annotation",
+            "name": "Repeat annotation and masking",
+            "description": (
+                "Mask repetitive regions before structural gene prediction."
+            ),
+            "candidates": ["repeatmasker"],
+        },
+        {
+            "operation": "gene_prediction",
+            "name": "Structural gene annotation",
+            "description": gene_description,
+            "candidates": ["braker4"],
+        },
+        {
+            "operation": "functional_annotation",
+            "name": "Complementary protein functional annotation",
+            "description": (
+                "Run orthology-based eggNOG-mapper together with domain/family "
+                "annotation from InterProScan. They provide complementary "
+                "functional evidence rather than interchangeable answers."
+            ),
+            "mode": "parallel",
+            "min_successful_candidates": 2,
+            "candidates": ["eggnog_mapper", "interproscan"],
+        },
+    ]
+
+
+def _hybrid_decision_points(
+    sequencing: str,
+) -> list[dict]:
+    long_platform = ONT if sequencing == HYBRID_ONT else PACBIO
+
+    decisions = [
+        {
+            "id": "assembly_polishing",
+            "title": "Do residual consensus errors justify extra polishing?",
+            "status": "context_dependent",
+            "when": (
+                "Consider after assembly when k-mer/QV or read-alignment QC "
+                "suggests residual base-level errors."
+            ),
+            "why": (
+                "Polishing is not universally inserted because hybrid assemblers "
+                "already use accurate short reads differently, and unnecessary "
+                "polishing can waste compute or alter a high-quality consensus."
+            ),
+            "suggested_tools": ["NextPolish"],
+            "evidence": [
+                {
+                    "label": "NextPolish official documentation",
+                    "url": "https://github.com/Nextomics/NextPolish",
+                }
+            ],
+        },
+        {
+            "id": "haplotig_reduction",
+            "title": "Is the assembly carrying uncollapsed haplotigs?",
+            "status": "context_dependent",
+            "when": (
+                "Consider for diploid/heterozygous genomes when duplicated BUSCO, "
+                "coverage or k-mer spectra suggest allelic redundancy."
+            ),
+            "why": (
+                "Haplotig purging is not a universal step; over-purging can remove "
+                "real biological sequence."
+            ),
+            "suggested_tools": ["purge_dups"],
+            "evidence": [
+                {
+                    "label": "purge_dups official documentation",
+                    "url": "https://github.com/dfguan/purge_dups",
+                }
+            ],
+        },
+        {
+            "id": "contamination_response",
+            "title": "Did contamination screening flag suspect contigs?",
+            "status": "decision_gate",
+            "when": (
+                "If BlobToolKit identifies contaminant/cobiont sequence, curate "
+                "the assembly and repeat QC/BUSCO before annotation."
+            ),
+            "why": (
+                "Downstream annotation should be performed on the curated target "
+                "assembly rather than silently propagating suspect contigs."
+            ),
+            "suggested_tools": ["BlobToolKit"],
+            "evidence": [
+                {
+                    "label": "BlobToolKit official documentation",
+                    "url": "https://github.com/genomehubs/blobtoolkit",
+                }
+            ],
+        },
+    ]
+
+    if long_platform == PACBIO:
+        decisions.insert(
+            0,
+            {
+                "id": "pacbio_read_chemistry",
+                "title": "Which PacBio read chemistry is this?",
+                "status": "needs_input",
+                "when": (
+                    "Resolve HiFi/CCS versus CLR before choosing any additional "
+                    "polishing or long-read-specific refinement."
+                ),
+                "why": (
+                    "PacBio HiFi and older noisy CLR data have different error "
+                    "profiles and should not share one blind polishing recipe."
+                ),
+                "suggested_tools": [],
+                "evidence": [
+                    {
+                        "label": "NextPolish documentation notes a separate HiFi path",
+                        "url": "https://github.com/Nextomics/NextPolish",
+                    }
+                ],
+            },
+        )
+
+    return decisions
 
 
 def _raw_input_artifacts(
@@ -585,10 +777,29 @@ def materialize_planner_workflow(
             "protein_evidence_fasta"
         )
 
-    steps.extend(
-        _post_assembly_steps(
-            evidence_guided=evidence_guided
+    if (
+        data_state == RAW_READS
+        and sequencing in {HYBRID_ONT, HYBRID_PACBIO}
+    ):
+        steps.extend(
+            _hybrid_post_assembly_steps(
+                evidence_guided=evidence_guided
+            )
         )
+    else:
+        steps.extend(
+            _post_assembly_steps(
+                evidence_guided=evidence_guided
+            )
+        )
+
+    decision_points = (
+        _hybrid_decision_points(sequencing)
+        if (
+            data_state == RAW_READS
+            and sequencing in {HYBRID_ONT, HYBRID_PACBIO}
+        )
+        else []
     )
 
     return {
@@ -625,5 +836,6 @@ def materialize_planner_workflow(
         "planner_version": PLANNER_VERSION,
         "goal_target_artifact": "functional_annotation_table",
         "evidence_basis": _EVIDENCE_BASIS,
+        "decision_points": decision_points,
         "data_state": data_state,
     }

@@ -296,6 +296,9 @@ repeat_annotation_gff:
   label: Repeat annotation GFF
 busco_lineage_database:
   label: BUSCO lineage dataset
+contamination_screening_report:
+  label: Genome contamination / cobiont screening report
+
 genome_completeness_report:
   label: Genome completeness assessment report
 eukaryotic_gene_annotation_gff:

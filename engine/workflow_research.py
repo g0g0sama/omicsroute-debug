@@ -40,6 +40,56 @@ SIGNALS = {
 }
 
 
+TARGETED_OPERATION_TERMS = {
+    "raw_read_qc": "read quality control",
+    "read_preprocessing": "adapter trimming quality filtering",
+    "genome_reconstruction": "genome assembly",
+    "assembly_qc": "assembly quality assessment",
+    "genome_quality_assessment": "BUSCO genome completeness",
+    "repeat_discovery": "RepeatModeler de novo repeat discovery",
+    "repeat_annotation": "RepeatMasker repeat masking",
+    "gene_prediction": "structural gene annotation gene prediction",
+    "functional_annotation": "protein functional annotation eggNOG InterPro",
+}
+
+
+def build_targeted_operation_queries(
+    sample_type,
+    sequencing,
+    goal,
+    operation_support,
+    max_operations=4,
+):
+    platform = " ".join(_platform_terms(sequencing))
+    queries = []
+
+    weak_rows = [
+        row
+        for row in (operation_support or [])
+        if row.get("planned")
+        and row.get("role") in {"core", "core_or_platform_dependent"}
+        and int(row.get("supporting_paper_count", 0) or 0) < 2
+    ]
+
+    for row in weak_rows[:max(1, int(max_operations))]:
+        operation = row.get("operation")
+        terms = TARGETED_OPERATION_TERMS.get(
+            operation,
+            row.get("label") or operation,
+        )
+
+        query = " ".join(
+            str(item).strip()
+            for item in [sample_type, platform, terms, goal]
+            if item
+        )
+
+        if query and query not in queries:
+            queries.append(query)
+
+    return queries
+
+
 def _norm(value: Any) -> str:
     return re.sub(
         r"\s+",
@@ -287,18 +337,85 @@ def research_workflow(
         data_state,
     )
 
-    search = search_workflow_literature(
+    broad_search = search_workflow_literature(
         queries,
         years=years,
     )
 
-    analysis = analyze(
-        search.get("results", []) or [],
+    broad_papers = broad_search.get("results", []) or []
+
+    initial_analysis = analyze(
+        broad_papers,
         planned_operations,
     )
 
+    targeted_queries = build_targeted_operation_queries(
+        sample_type=sample_type,
+        sequencing=sequencing,
+        goal=goal,
+        operation_support=initial_analysis.get("operation_support", []),
+        max_operations=4,
+    )
+
+    targeted_search = {
+        "queries": [],
+        "providers_searched": [],
+        "searches": [],
+        "partial_errors": [],
+        "results": [],
+        "total_results": 0,
+        "error": None,
+    }
+
+    if targeted_queries:
+        targeted_search = search_workflow_literature(
+            targeted_queries,
+            years=years,
+            per_source_limit=6,
+            max_queries=4,
+        )
+
+    combined_papers = merge_papers(
+        broad_papers + (targeted_search.get("results", []) or [])
+    )
+
+    combined_papers.sort(
+        key=lambda paper: (
+            len(paper.get("source_providers", []) or []),
+            paper.get("year", 0) or 0,
+            paper.get("cited_by_count", 0) or 0,
+        ),
+        reverse=True,
+    )
+
+    final_analysis = analyze(
+        combined_papers,
+        planned_operations,
+    )
+
+    all_queries = list(
+        dict.fromkeys(
+            (broad_search.get("queries", []) or [])
+            + (targeted_search.get("queries", []) or [])
+        )
+    )
+
+    partial_errors = list(
+        dict.fromkeys(
+            (broad_search.get("partial_errors", []) or [])
+            + (targeted_search.get("partial_errors", []) or [])
+        )
+    )
+
+    providers = list(
+        dict.fromkeys(
+            (broad_search.get("providers_searched", []) or [])
+            + (targeted_search.get("providers_searched", []) or [])
+        )
+    )
+
     return {
-        "version": VERSION,
+        "version": "2.3-workflow-literature",
         "context": {
             "sample_type": sample_type,
             "sequencing": sequencing,
@@ -306,15 +423,25 @@ def research_workflow(
             "goal": goal,
             "data_state": data_state,
         },
-        "queries": search["queries"],
-        "providers_searched": search["providers_searched"],
-        "searches": search["searches"],
-        "partial_errors": search["partial_errors"],
-        "error": search["error"],
-        "paper_count": search["total_results"],
+        "queries": all_queries,
+        "broad_queries": broad_search.get("queries", []),
+        "targeted_followup_queries": targeted_search.get("queries", []),
+        "targeted_followup_triggered": bool(targeted_queries),
+        "providers_searched": providers,
+        "searches": (
+            (broad_search.get("searches", []) or [])
+            + (targeted_search.get("searches", []) or [])
+        ),
+        "partial_errors": partial_errors,
+        "error": (
+            None
+            if combined_papers
+            else (targeted_search.get("error") or broad_search.get("error"))
+        ),
+        "paper_count": len(combined_papers),
         "papers": [
             _compact_paper(paper)
-            for paper in (search.get("results", []) or [])[:20]
+            for paper in combined_papers[:20]
         ],
-        **analysis,
+        **final_analysis,
     }

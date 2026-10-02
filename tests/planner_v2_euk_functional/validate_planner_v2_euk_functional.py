@@ -127,7 +127,9 @@ def main():
         planner_ids = [
             item["id"]
             for item in strategies
-            if str(item.get("id", "")).startswith("planner2__")
+            if str(item.get("id", "")).startswith(
+                ("planner2__", "planner3__")
+            )
         ]
 
         assert len(planner_ids) == 2, (
@@ -219,7 +221,7 @@ def main():
 
     print("=" * 78)
     print("RESULT: PASS")
-    print("Planner v2 eukaryotic functional-annotation foundation is valid.")
+    print("Eukaryotic functional-annotation foundation remains valid across Planner v2 and Planner v3 routes.")
     print("Validated:")
     print("- Illumina paired-end raw reads")
     print("- Oxford Nanopore raw long reads")

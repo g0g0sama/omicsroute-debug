@@ -2392,6 +2392,148 @@ masurca:
   container: true
   galaxy: false
   nfcore: false
+wengan:
+  name: Wengan
+  description: >-
+    Hybrid eukaryotic genome assembler that combines paired-end short reads
+    with Oxford Nanopore or PacBio long reads. OmicsRoute uses Wengan as an
+    alternative hybrid-assembly strategy.
+  operations:
+  - hybrid_genome_assembly
+  sample_types:
+  - Eukaryotic genome
+  sequencing:
+  - Illumina
+  - Oxford Nanopore
+  - PacBio
+  read_types:
+  - Paired-end
+  - Long reads
+  input:
+  - Paired-end FASTQ
+  - Long-read FASTQ
+  output:
+  - Eukaryotic genome assembly FASTA
+  official_docs: https://github.com/adigenova/wengan
+  repository: https://github.com/adigenova/wengan
+  maintenance: legacy
+  community: moderate
+  bioconda: false
+  container: true
+  galaxy: false
+  nfcore: false
+merqury:
+  name: Merqury
+  description: >-
+    Reference-free k-mer-based assembly evaluation using accurate read k-mers
+    to assess consensus quality and completeness. In OmicsRoute hybrid
+    eukaryotic routes, the Illumina reads provide an independent k-mer source
+    for evaluating the assembled genome.
+  operations:
+  - assembly_qc
+  sample_types:
+  - Eukaryotic genome
+  sequencing:
+  - Any
+  read_types:
+  - Any
+  input:
+  - Paired-end FASTQ
+  - Eukaryotic genome assembly FASTA
+  output:
+  - Assembly quality report
+  official_docs: https://github.com/marbl/merqury
+  repository: https://github.com/marbl/merqury
+  maintenance: active
+  community: high
+  bioconda: true
+  container: false
+  galaxy: false
+  nfcore: false
+
+blobtoolkit:
+  name: BlobToolKit
+  description: >-
+    Genome assembly QC and contaminant/cobiont detection framework. OmicsRoute
+    uses it as an assembly-screening step before downstream eukaryotic genome
+    annotation; detected contamination should trigger curation and re-QC rather
+    than being silently ignored.
+  operations:
+  - contamination_screening
+  sample_types:
+  - Eukaryotic genome
+  sequencing:
+  - Any
+  read_types:
+  - Any
+  input:
+  - Eukaryotic genome assembly FASTA
+  output:
+  - Contamination screening report
+  official_docs: https://github.com/genomehubs/blobtoolkit
+  repository: https://github.com/genomehubs/blobtoolkit
+  maintenance: active
+  community: high
+  bioconda: false
+  container: true
+  galaxy: false
+  nfcore: false
+
+edta:
+  name: EDTA
+  description: >-
+    Extensive de novo transposable-element annotation pipeline that can build a
+    high-quality non-redundant TE library for whole-genome repeat annotation.
+    OmicsRoute exposes EDTA as an alternative repeat-discovery strategy to
+    RepeatModeler in complete eukaryotic genome annotation routes.
+  operations:
+  - repeat_discovery
+  sample_types:
+  - Eukaryotic genome
+  sequencing:
+  - Any
+  read_types:
+  - Any
+  input:
+  - Eukaryotic genome assembly FASTA
+  output:
+  - Species-specific repeat library
+  official_docs: https://github.com/oushujun/EDTA
+  repository: https://github.com/oushujun/EDTA
+  maintenance: active
+  community: high
+  bioconda: true
+  container: true
+  galaxy: false
+  nfcore: false
+
+interproscan:
+  name: InterProScan
+  description: >-
+    Protein function classification against InterPro member-database signatures.
+    It complements orthology-based annotation by identifying protein families,
+    domains and functional sites from predicted protein sequences.
+  operations:
+  - functional_annotation
+  sample_types:
+  - Eukaryotic genome
+  sequencing:
+  - Any
+  read_types:
+  - Any
+  input:
+  - Predicted protein FASTA
+  output:
+  - Functional annotation table
+  official_docs: https://github.com/ebi-pf-team/interproscan6
+  repository: https://github.com/ebi-pf-team/interproscan6
+  maintenance: active
+  community: very_high
+  bioconda: false
+  container: true
+  galaxy: false
+  nfcore: false
+
 busco:
   name: BUSCO
   description: 'Genome completeness assessment framework that evaluates assemblies using conserved single-copy ortholog

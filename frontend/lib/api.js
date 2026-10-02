@@ -65,6 +65,12 @@ export const inspectWorkflow = (payload) =>
     body: JSON.stringify(payload),
   });
 
+export const researchWorkflow = (payload) =>
+  request("/v1/workflow-research", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+
 export const searchTaxa = (query) =>
   request(`/v1/reference/taxa?q=${encodeURIComponent(query)}`);
 

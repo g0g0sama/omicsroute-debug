@@ -1083,6 +1083,42 @@ masurca:
     - long_fastq
     produces:
     - eukaryotic_genome_fasta
+wengan:
+  routes:
+  - requires:
+    - paired_fastq
+    - long_fastq
+    produces:
+    - eukaryotic_genome_fasta
+merqury:
+  routes:
+  - requires:
+    - paired_fastq
+    - eukaryotic_genome_fasta
+    produces:
+    - assembly_qc_report
+
+blobtoolkit:
+  routes:
+  - requires:
+    - eukaryotic_genome_fasta
+    produces:
+    - contamination_screening_report
+
+edta:
+  routes:
+  - requires:
+    - eukaryotic_genome_fasta
+    produces:
+    - repeat_library
+
+interproscan:
+  routes:
+  - requires:
+    - eukaryotic_protein_fasta
+    produces:
+    - functional_annotation_table
+
 busco:
   routes:
   - requires:

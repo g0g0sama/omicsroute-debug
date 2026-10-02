@@ -16,6 +16,7 @@ import {
   getToolEvidence,
   inspectWorkflow,
   researchAlternatives,
+  researchWorkflow,
   searchAssemblies,
   searchTaxa,
 } from "@/lib/api";
@@ -1092,6 +1093,223 @@ function EvidencePanel({ evidence }) {
   );
 }
 
+function WorkflowLiteraturePanel({ research }) {
+  if (!research) return null;
+
+  if (research.loading) {
+    return (
+      <section className="workflow-literature">
+        <div className="workflow-literature-head">
+          <div>
+            <span className="section-number">Literature structure check</span>
+            <h3>Researching workflow-level evidence...</h3>
+          </div>
+          <StatusPill status="needs_input">Searching</StatusPill>
+        </div>
+        <p className="muted-copy">
+          OmicsRoute is checking OpenAlex and Europe PMC for publications
+          relevant to this biological goal and data context. The workflow
+          result above remains usable while this research runs.
+        </p>
+      </section>
+    );
+  }
+
+  if (research.error && !research.data) {
+    return (
+      <section className="workflow-literature">
+        <div className="workflow-literature-head">
+          <div>
+            <span className="section-number">Literature structure check</span>
+            <h3>Workflow literature could not be loaded</h3>
+          </div>
+          <StatusPill status="warning">Unavailable</StatusPill>
+        </div>
+        <div className="notice warning">{research.error}</div>
+      </section>
+    );
+  }
+
+  const data = research.data || {};
+  const supported = data.planned_operations_with_literature_signal || 0;
+  const planned = data.planned_operation_count || 0;
+  const fraction =
+    data.planner_alignment_fraction === null ||
+    data.planner_alignment_fraction === undefined
+      ? "—"
+      : `${Math.round(Number(data.planner_alignment_fraction) * 100)}%`;
+
+  const plannedRows = (data.operation_support || []).filter(
+    (item) => item.planned
+  );
+
+  const candidates = data.contextual_candidate_operations || [];
+
+  return (
+    <section className="workflow-literature">
+      <div className="workflow-literature-head">
+        <div>
+          <span className="section-number">
+            Literature-supported workflow structure
+          </span>
+          <h3>How much of this route is visible in retrieved literature?</h3>
+        </div>
+        <StatusPill status="pass">Researched</StatusPill>
+      </div>
+
+      <p className="workflow-literature-copy">
+        This is a workflow-level evidence layer, separate from tool-level
+        evidence. It checks which analysis operations recur in publications
+        for the selected context. Literature co-occurrence does not infer
+        executable step order; artifact and dependency rules still control
+        the technical route.
+      </p>
+
+      <div className="literature-metrics">
+        <Metric label="Retrieved papers" value={data.paper_count || 0} />
+        <Metric label="Planned operations" value={planned} />
+        <Metric label="With literature signal" value={supported} />
+        <Metric label="Operation evidence coverage" value={fraction} />
+      </div>
+
+      {data.partial_errors?.length ? (
+        <div className="notice warning">
+          Some literature sources returned warnings:{" "}
+          {data.partial_errors.join(" · ")}
+        </div>
+      ) : null}
+
+      {data.targeted_followup_triggered ? (
+        <div className="notice info">
+          OmicsRoute ran targeted follow-up searches for planned operations
+          that had zero or limited signal in the broad workflow search.
+        </div>
+      ) : null}
+
+      <div className="literature-operation-list">
+        <strong>Planned operations</strong>
+
+        {!plannedRows.length ? (
+          <span className="muted-copy">
+            No operation-level support rows were returned.
+          </span>
+        ) : (
+          plannedRows.map((item) => (
+            <div
+              className="literature-operation-row"
+              key={item.operation}
+            >
+              <div>
+                <span
+                  className={cx(
+                    "literature-dot",
+                    item.supporting_paper_count > 0
+                      ? "literature-dot-supported"
+                      : "literature-dot-missing"
+                  )}
+                />
+                <div>
+                  <strong>{item.label}</strong>
+                  <small>
+                    {item.supporting_paper_count > 0
+                      ? `${item.supporting_paper_count} publication${
+                          item.supporting_paper_count === 1 ? "" : "s"
+                        } with a matching title/abstract signal`
+                      : "No matching signal in the retrieved titles/abstracts"}
+                  </small>
+                </div>
+              </div>
+
+              <StatusPill
+                status={
+                  item.confidence === "strong" ||
+                  item.confidence === "moderate"
+                    ? "pass"
+                    : item.confidence === "limited"
+                    ? "warning"
+                    : "not_defined"
+                }
+              >
+                {item.confidence === "none"
+                  ? "No signal retrieved"
+                  : `${prettyId(item.confidence)} signal`}
+              </StatusPill>
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="literature-candidates">
+        <strong>Literature signals not currently in route</strong>
+
+        {!candidates.length ? (
+          <span className="muted-copy">
+            No repeated contextual operation signal crossed the current
+            threshold.
+          </span>
+        ) : (
+          candidates.map((item) => (
+            <div key={item.operation} className="literature-candidate">
+              <div>
+                <strong>{item.label}</strong>
+                <span>
+                  Seen in {item.supporting_paper_count} retrieved
+                  publications · {prettyId(item.confidence)} support
+                </span>
+              </div>
+              <StatusPill status="warning">Needs validation</StatusPill>
+            </div>
+          ))
+        )}
+
+        <small>
+          These are research leads, not automatically inserted steps. A
+          candidate must first pass artifact/I/O, tool-capability and
+          context-specific validation. Zero title/abstract matches also do not
+          mean that an existing planned step is unnecessary.
+        </small>
+      </div>
+
+      <details className="literature-papers">
+        <summary>View retrieved publications and search queries</summary>
+        <div>
+          {(data.queries || []).length ? (
+            <div className="mini-list">
+              <strong>Search queries</strong>
+              {(data.queries || []).map((query) => (
+                <span key={query}>• {query}</span>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="paper-list">
+            {(data.papers || []).slice(0, 12).map((paper, index) => (
+              <article
+                key={`${paper.doi || paper.pmid || paper.title}-${index}`}
+              >
+                <div>
+                  {paper.year ? <span>{paper.year}</span> : null}
+                  {(paper.source_providers || []).length ? (
+                    <span>{paper.source_providers.join(", ")}</span>
+                  ) : null}
+                </div>
+                <strong>{paper.title || "Untitled publication"}</strong>
+                {paper.journal ? <small>{paper.journal}</small> : null}
+                {paper.url ? (
+                  <a href={paper.url} target="_blank" rel="noreferrer">
+                    Open publication ↗
+                  </a>
+                ) : null}
+              </article>
+            ))}
+          </div>
+        </div>
+      </details>
+    </section>
+  );
+}
+
+
 function BioToolsPanel({ info }) {
   if (!info) return null;
 
@@ -1337,6 +1555,72 @@ function ToolCard({
     </div>
   );
 }
+
+function DecisionPointsPanel({ points }) {
+  if (!points?.length) return null;
+
+  return (
+    <section className="decision-points">
+      <div className="decision-points-head">
+        <div>
+          <span className="section-number">Context-dependent decisions</span>
+          <h3>Steps that should not be applied blindly</h3>
+        </div>
+        <StatusPill status="needs_input">Review context</StatusPill>
+      </div>
+
+      <p className="muted-copy">
+        These checks can materially change a hybrid genome workflow, but they
+        are not universal mandatory steps. OmicsRoute keeps them explicit
+        instead of silently forcing the same recipe onto every genome.
+      </p>
+
+      <div className="decision-point-list">
+        {points.map((point) => (
+          <article key={point.id} className="decision-point">
+            <div className="decision-point-title">
+              <strong>{point.title}</strong>
+              <StatusPill
+                status={
+                  point.status === "needs_input"
+                    ? "needs_input"
+                    : point.status === "decision_gate"
+                    ? "warning"
+                    : "not_defined"
+                }
+              >
+                {prettyId(point.status)}
+              </StatusPill>
+            </div>
+
+            {point.when ? <p><strong>When:</strong> {point.when}</p> : null}
+            {point.why ? <p><strong>Why:</strong> {point.why}</p> : null}
+
+            {point.suggested_tools?.length ? (
+              <div className="tag-row">
+                {point.suggested_tools.map((tool) => (
+                  <span key={tool}>{tool}</span>
+                ))}
+              </div>
+            ) : null}
+
+            {(point.evidence || []).map((item) => (
+              <a
+                key={item.url || item.label}
+                href={item.url}
+                target="_blank"
+                rel="noreferrer"
+              >
+                {item.label || "Documentation"} ↗
+              </a>
+            ))}
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 
 function RecoveryPanel({ recovery }) {
   if (!recovery) return null;
@@ -1669,6 +1953,7 @@ export default function HomePage() {
   const [strategyId, setStrategyId] = useState("");
 
   const [inspection, setInspection] = useState(null);
+  const [workflowResearch, setWorkflowResearch] = useState(null);
   const [datasetProfile, setDatasetProfile] = useState({});
   const [computeProfile, setComputeProfile] = useState(DEFAULT_COMPUTE);
   const [workflowBusy, setWorkflowBusy] = useState(false);
@@ -1891,6 +2176,7 @@ export default function HomePage() {
 
   function resetWorkflowState() {
     setInspection(null);
+    setWorkflowResearch(null);
     setDatasetProfile({});
     setEvidenceByKey({});
     setBiotoolsByKey({});
@@ -1947,6 +2233,43 @@ export default function HomePage() {
     };
   }
 
+  function workflowResearchPayload() {
+    return {
+      sample_type: sampleType,
+      data_state: dataState,
+      sequencing: isRawReads ? sequencing : null,
+      read_type: isRawReads ? readType : null,
+      goal,
+      workflow_id: strategyId,
+      reference_context: referenceContext,
+      compute_profile: computeProfile,
+      years: 10,
+    };
+  }
+
+  async function loadWorkflowResearch() {
+    if (!goal || !strategyId) return;
+
+    setWorkflowResearch({ loading: true });
+
+    try {
+      const data = await researchWorkflow(
+        workflowResearchPayload()
+      );
+
+      setWorkflowResearch({
+        loading: false,
+        data,
+      });
+    } catch (err) {
+      setWorkflowResearch({
+        loading: false,
+        error: err.message,
+      });
+    }
+  }
+
+
   async function handleBuild() {
     if (!goal || !strategyId) return;
     setWorkflowBusy(true);
@@ -1955,6 +2278,11 @@ export default function HomePage() {
     try {
       const result = await inspectWorkflow(inspectionPayload());
       setInspection(result);
+
+      // Workflow-level literature research is intentionally non-blocking.
+      // The technical plan appears immediately; literature structure support
+      // is loaded as a separate evidence layer.
+      void loadWorkflowResearch();
 
       if (typeof window !== "undefined") {
         window.requestAnimationFrame(() => {
@@ -2528,6 +2856,10 @@ export default function HomePage() {
                 ) : null}
 
                 <DependencyPanel dependency={inspection.dependency} />
+
+                <WorkflowLiteraturePanel research={workflowResearch} />
+
+                <DecisionPointsPanel points={workflow.decision_points} />
 
                 <div className="workflow-steps">
                   {(workflow.steps || []).map((step, stepIndex) => (
