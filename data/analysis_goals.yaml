@@ -15,8 +15,8 @@ bacterial_isolate:
       label: Whole genome characterization
       priority: core
 
-    - id: hybrid_genome_assembly
-      label: Hybrid genome assembly
+    - id: genome_assembly
+      label: Genome assembly
       priority: core
 
     - id: variant_analysis
@@ -72,12 +72,13 @@ eukaryotic_genome:
       label: Genome assembly
       priority: core
 
-    - id: hybrid_genome_assembly
-      label: Hybrid genome assembly
-      priority: core
 
     - id: genome_quality_assessment
       label: Genome quality assessment
+      priority: core
+
+    - id: contamination_screening
+      label: Contamination screening
       priority: core
 
     - id: repeat_annotation

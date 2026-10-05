@@ -468,3 +468,8 @@ non_rrna_long_fastq_collection:
   - long_fastq_collection
 amplicon_taxonomic_abundance:
   label: Amplicon taxonomic abundance table
+# OMICSROUTE EUKARYOTIC ORGANISM IDENTIFICATION V1
+reference_genome_sketch_database:
+  label: Curated reference genome sketch database
+organism_identification_report:
+  label: Organism identification / closest reference report

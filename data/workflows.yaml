@@ -574,7 +574,7 @@ bacterial_illumina_ont_hybrid:
     read_type:
     - Paired-end
     - Long reads
-    goal: Hybrid genome assembly
+    goal: Genome assembly
   steps:
   - operation: raw_read_qc
     name: Illumina read quality control
@@ -656,7 +656,7 @@ bacterial_illumina_pacbio_hybrid:
     read_type:
     - Paired-end
     - Long reads
-    goal: Hybrid genome assembly
+    goal: Genome assembly
   steps:
   - operation: raw_read_qc
     name: Illumina read quality control
@@ -2370,7 +2370,7 @@ eukaryotic_genome_illumina_ont_hybrid:
     read_type:
     - Paired-end
     - Long reads
-    goal: Hybrid genome assembly
+    goal: Genome assembly
   external_inputs:
   - raw_paired_fastq
   - raw_long_fastq

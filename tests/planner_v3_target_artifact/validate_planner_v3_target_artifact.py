@@ -84,7 +84,7 @@ def main():
 
                 assert workflow is not None
                 assert workflow["planner_version"] == (
-                    "3.0-target-artifact-foundation"
+                    "3.1-all-eukaryotic-contexts"
                 )
                 assert workflow["goal_target_artifact"] == target_artifact
 

@@ -32,6 +32,7 @@ from engine.context_intake import (
     filter_goal_options,
     get_context_goal_options,
     get_context_workflow_strategies,
+    get_goal_availability,
     materialize_context_workflow,
 )
 
@@ -686,7 +687,35 @@ def get_goal_options(
         reference_context
     )
 
-    return values
+    # Global selection contract:
+    # disabled/needs-input goals may remain visible, but a selectable goal
+    # must have at least one strategy for this exact context.
+    routed_values = []
+
+    for candidate_goal in values:
+        availability = get_goal_availability(
+            sample_type,
+            data_state or RAW_READS,
+            candidate_goal,
+        )
+
+        if not availability.get("selectable", True):
+            routed_values.append(candidate_goal)
+            continue
+
+        strategies = get_workflow_strategies(
+            sample_type,
+            sequencing,
+            read_type,
+            candidate_goal,
+            data_state=data_state or RAW_READS,
+            reference_context=reference_context,
+        )
+
+        if strategies:
+            routed_values.append(candidate_goal)
+
+    return unique_preserve_order(routed_values)
 
 
 # ==================================================

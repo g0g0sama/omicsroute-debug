@@ -3562,3 +3562,32 @@ flair:
   container: true
   galaxy: false
   nfcore: false
+# OMICSROUTE EUKARYOTIC ORGANISM IDENTIFICATION V1
+sourmash_eukaryotic:
+  name: sourmash
+  description: >-
+    Genome-sketch comparison for an unknown eukaryotic assembly against a
+    curated broad reference-sketch collection. OmicsRoute reports closest
+    indexed references and their lineage evidence; it does not claim an exact
+    species when database coverage is insufficient.
+  operations:
+    - genome_identification
+  sample_types:
+    - Eukaryotic genome
+  sequencing:
+    - Any
+  read_types:
+    - Any
+  input:
+    - Eukaryotic genome assembly FASTA
+    - Reference genome sketch database
+  output:
+    - Organism identification / closest reference report
+  official_docs: https://sourmash.readthedocs.io/
+  repository: https://github.com/sourmash-bio/sourmash
+  maintenance: active
+  community: high
+  bioconda: true
+  container: true
+  galaxy: false
+  nfcore: false

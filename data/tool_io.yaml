@@ -1512,3 +1512,11 @@ flair:
     - analysis_design
     produces:
     - splice_event_results
+# OMICSROUTE EUKARYOTIC ORGANISM IDENTIFICATION V1
+sourmash_eukaryotic:
+  routes:
+    - requires:
+        - eukaryotic_genome_fasta
+        - reference_genome_sketch_database
+      produces:
+        - organism_identification_report
