@@ -1,0 +1,28 @@
+{
+  "base_url": "https://omicsroute-debug.onrender.com",
+  "started_at": "2026-10-06T12:44:50.356080+00:00",
+  "samples_per_endpoint": 20,
+  "warmups": [
+    {
+      "path": "/health",
+      "milliseconds": 120121.745,
+      "ok": false,
+      "error": "HTTPSConnectionPool(host='omicsroute-debug.onrender.com', port=443): Read timed out. (read timeout=120)"
+    },
+    {
+      "path": "/v1/sample-types",
+      "milliseconds": 120049.901,
+      "ok": false,
+      "error": "HTTPSConnectionPool(host='omicsroute-debug.onrender.com', port=443): Read timed out. (read timeout=120)"
+    },
+    {
+      "path": "/v1/catalog/coverage",
+      "milliseconds": 120129.018,
+      "ok": false,
+      "error": "HTTPSConnectionPool(host='omicsroute-debug.onrender.com', port=443): Read timed out. (read timeout=120)"
+    }
+  ],
+  "ok": false,
+  "label": "baseline-render-warm",
+  "commit": "6cb1beff66f2338712ab1bfeb798fe3a0f8c5ae2"
+}

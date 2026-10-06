@@ -47,13 +47,21 @@ Raw results: [baseline](baseline-local.json), [optimized](optimized-local.json).
 ## Deployment status
 
 The baseline is published on remote branch `debug`. Vercel deployed that commit
-at <https://omicsroute-debug.vercel.app>. Its initially observed bundle points to
-localhost and requires its production API environment variable and a redeploy.
+at <https://omicsroute-debug.vercel.app>. Its initially observed bundle pointed to
+localhost. The subsequent production redeploy was inspected and now embeds
+the correct Render API URL.
 The user supplied backend URL <https://omicsroute-debug.onrender.com>.
 The first `/health` request timed out after 120 seconds. A separate curl request
 established TCP and TLS in under 100 ms but received no HTTP bytes within its
 10-second limit. This does not establish whether the Render service is sleeping,
 still deploying, or failing startup; dashboard status/logs are required.
+The failed benchmark warmup is retained in
+[the Render attempt](baseline-render-attempt.json). It contains no successful
+warm timing samples and cannot be used as a performance comparison.
+
+The optimized implementation and this report are published on the temporary
+`debug-precomputed` branch. Remote `debug` remains at the original baseline
+until the deployed baseline can be captured.
 
 Render baseline/optimized timings, confirmed idle behavior, deployed browser
 checks, and optimized deployment commit IDs are pending. None of the local

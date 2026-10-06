@@ -73,6 +73,9 @@ on 2026-10-06, but its baseline bundle still used `http://127.0.0.1:8000`.
 The user supplied `https://omicsroute-debug.onrender.com` as the backend URL.
 An initial `/health` request timed out after 120 seconds; the service and completed
 platform configuration are not yet verified.
+The subsequent Vercel redeploy was inspected and its browser bundle now points
+to that Render URL. The implementation is published on `debug-precomputed`,
+while remote `debug` retains the baseline until Render can be verified.
 
 ## Measure and deploy the optimized version
 
