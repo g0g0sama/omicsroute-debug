@@ -68,10 +68,14 @@ def run(base_url, samples=20, idle_seconds=0):
                 result["ok"] = False
                 return result
 
-        result["warmups"] = [request_sample(session, base_url, path) for path in ENDPOINTS]
-        if not all(row["ok"] for row in result["warmups"]):
-            result["ok"] = False
-            return result
+        result["warmups"] = []
+        for path in ENDPOINTS:
+            row = request_sample(session, base_url, path)
+            result["warmups"].append(row)
+            print("Warmup", path, "ok" if row["ok"] else row.get("error", row.get("status")), flush=True)
+            if not row["ok"]:
+                result["ok"] = False
+                return result
         result["requests"] = []
         result["summary"] = {}
         for path in ENDPOINTS:

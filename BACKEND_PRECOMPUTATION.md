@@ -60,7 +60,7 @@ root directory `frontend`, Node 22, install command `npm ci` and build command
 `npm run build`. Set this variable in the Production environment:
 
 ```text
-NEXT_PUBLIC_OMICSROUTE_API_URL=https://YOUR-ACTUAL-RENDER-SERVICE.onrender.com
+NEXT_PUBLIC_OMICSROUTE_API_URL=https://omicsroute-debug.onrender.com
 ```
 
 Redeploy Vercel after setting it: this browser URL is embedded at build time.
@@ -70,7 +70,9 @@ apply to subsequent deployments:
 
 The Vercel frontend was observed live at `https://omicsroute-debug.vercel.app`
 on 2026-10-06, but its baseline bundle still used `http://127.0.0.1:8000`.
-The Render service URL and completed platform configuration are not yet verified.
+The user supplied `https://omicsroute-debug.onrender.com` as the backend URL.
+An initial `/health` request timed out after 120 seconds; the service and completed
+platform configuration are not yet verified.
 
 ## Measure and deploy the optimized version
 
@@ -81,7 +83,7 @@ successful/failed counts, median and nearest-rank p95.
 
 ```bash
 .venv/bin/python -m scripts.benchmark_api \
-  --base-url https://YOUR-ACTUAL-RENDER-SERVICE.onrender.com \
+  --base-url https://omicsroute-debug.onrender.com \
   --label baseline-render \
   --commit 6cb1beff66f2338712ab1bfeb798fe3a0f8c5ae2 \
   --samples 20 --idle-seconds 960 \

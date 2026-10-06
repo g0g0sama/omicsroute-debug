@@ -1,0 +1,26 @@
+{
+  "base_url": "http://localhost:3002",
+  "scenarios": [
+    {
+      "sequencing": "Illumina",
+      "read_type": "Paired-end",
+      "goal": "Functional profiling",
+      "workflow": "metagenome_illumina_functional",
+      "downloads": [
+        "build/browser-smoke/Illumina-metagenome_illumina_functional_profiling.md",
+        "build/browser-smoke/Illumina-metagenome_illumina_functional_profiling.json"
+      ]
+    },
+    {
+      "sequencing": "Oxford Nanopore",
+      "read_type": "Long reads",
+      "goal": "Taxonomic profiling",
+      "workflow": "dynamic__metagenome__oxford_nanopore__long_reads__taxonomic_profiling",
+      "downloads": [
+        "build/browser-smoke/Oxford-Nanopore-metagenome_oxford_nanopore_long_read_taxonomic_profiling.md",
+        "build/browser-smoke/Oxford-Nanopore-metagenome_oxford_nanopore_long_read_taxonomic_profiling.json"
+      ]
+    }
+  ],
+  "page_errors": []
+}
