@@ -132,7 +132,7 @@ Then open:
 http://localhost:3000
 ```
 
-For local development, the frontend defaults to `http://127.0.0.1:8000` unless `NEXT_PUBLIC_OMICSROUTE_API_URL` is set.
+For local development, set `NEXT_PUBLIC_OMICSROUTE_API_URL=http://127.0.0.1:8000` in `frontend/.env.local`, then restart the frontend. Without an override, API requests use the frontend origin.
 
 ## Repository structure
 
@@ -148,14 +148,9 @@ app.py                  Legacy/alternative Streamlit interface
 
 ## Deployment
 
-The current public beta is deployed as:
+This `vercel-no-precomputed` branch deploys the frontend and backend together with Vercel Services. Coverage is calculated for each request using the original benchmark baseline (`6cb1bef`); there is no generated coverage snapshot, startup coverage calculation, or catalogue cache.
 
-- **Frontend:** Vercel
-- **Backend:** Render
-
-See `DEPLOY_PUBLIC_BETA.md` for deployment details.
-
-The free backend may require a short cold-start period after inactivity. This is an infrastructure limitation rather than a workflow-engine requirement.
+See `DEPLOY_PUBLIC_BETA.md` for Vercel configuration and verification. Completed optimization benchmarks remain on the existing branches.
 
 ## Feedback
 

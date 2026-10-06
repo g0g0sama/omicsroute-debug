@@ -1,93 +1,83 @@
-# Deploy OmicsRoute Public Beta
+# Deploy OmicsRoute with Vercel Services
 
-The application is split into:
+The `vercel-no-precomputed` branch combines the original benchmark baseline
+(`6cb1bef`) with the Vercel Services deployment configuration. The API and
+catalogue engine match the baseline: coverage is calculated on every request.
+No coverage generation step, generated snapshot, startup coverage calculation,
+or catalogue caching is required.
 
-- `frontend/`: Next.js browser interface
-- `api/`: FastAPI backend
-- `engine/`, `data/`, `services/`: scientific planning engine and catalogue
+## Project settings
 
-A straightforward public-beta deployment is:
+Import `g0g0sama/omicsroute-debug` into Vercel, or select this branch for an
+existing project's deployment:
 
-- **Frontend:** Vercel
-- **Backend:** Render
+- Branch: `vercel-no-precomputed`.
+- Root Directory: repository root, rather than `frontend/`.
+- Framework Preset: **Services**.
+- Node.js: **22.x**. Python is pinned to **3.12** in `.python-version`.
+- Use the default service build commands; remove any dashboard build override
+  that invokes `scripts.precompute_coverage`.
+- Leave `NEXT_PUBLIC_OMICSROUTE_API_URL` unset in every environment used for
+  this branch. Remove any existing localhost or Render override before building.
 
-## 1. Push the validated local project to GitHub
+The checked-in `vercel.json` defines the Next.js frontend and the FastAPI backend
+with entrypoint `api.main:app`. `/health` and `/v1/*` route to the backend; all
+remaining paths route to the frontend. The browser calls the API on the same
+origin, so separate backend hosting and production CORS configuration are
+unnecessary for this setup.
 
-From the project root:
+Vercel Services configuration reference:
+<https://vercel.com/kb/guide/vercel-services>.
 
-```powershell
-git status
-git add -A
-git commit -m "Prepare OmicsRoute public beta"
-git push origin main
+## Local development
+
+From the repository root, use Python 3.12:
+
+```bash
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -r requirements.txt
+.venv/bin/python -m uvicorn api.main:app --host 127.0.0.1 --port 8000
 ```
 
-Do not create the release tag until this push succeeds.
-
-## 2. Deploy the FastAPI backend on Render
-
-Create a new Blueprint/Web Service from the GitHub repository. The repository includes `render.yaml`.
-
-The service uses:
-
-- build: `pip install -r requirements.txt`
-- start: `python -m uvicorn api.main:app --host 0.0.0.0 --port $PORT`
-- health check: `/health`
-
-For the first deploy, temporarily set:
+In `frontend/.env.local`, set:
 
 ```text
-OMICSROUTE_CORS_ORIGINS=http://localhost:3000
+NEXT_PUBLIC_OMICSROUTE_API_URL=http://127.0.0.1:8000
 ```
 
-After the Vercel frontend exists, replace it with the real Vercel origin, for example:
+Then run the frontend in a second terminal with Node 22:
 
-```text
-OMICSROUTE_CORS_ORIGINS=https://your-omicsroute.vercel.app
+```bash
+cd frontend
+npm ci
+npm run dev
 ```
 
-If you later add a custom domain, include that origin as well. Multiple origins are comma-separated.
+Open `http://localhost:3000`. Remove the local API URL override before a Vercel
+build. Next.js embeds this public environment variable at build time.
 
-## 3. Deploy the Next.js frontend on Vercel
+## Verification
 
-Import the same GitHub repository into Vercel.
+Run the existing validators from the repository root:
 
-Set **Root Directory** to:
-
-```text
-frontend
+```bash
+.venv/bin/python tests/api_foundation_v1/validate_api_foundation_v1.py
+.venv/bin/python tests/web_parity_v1/validate_web_parity_v1.py
+.venv/bin/python tests/metagenome_platform_coverage_v1/validate_metagenome_platform_coverage_v1.py
 ```
 
-Vercel should auto-detect Next.js.
+Build the frontend with the API URL unset:
 
-Add:
-
-```text
-NEXT_PUBLIC_OMICSROUTE_API_URL=https://YOUR-RENDER-BACKEND.onrender.com
+```bash
+cd frontend
+npm ci
+npm run build
 ```
 
-Deploy.
+For a deployment, verify `/health`, `/v1/sample-types`, and
+`/v1/catalog/coverage`, then build short-read and long-read workflows and check
+both Markdown and JSON downloads. The coverage endpoint does the original
+calculation per request, so allow it to finish when checking API connectivity.
 
-## 4. Final production check
-
-Open the public frontend and verify:
-
-1. API badge becomes `API connected`.
-2. Select at least one short-read and one long-read context.
-3. Build a workflow.
-4. Change the computer profile and rebuild.
-5. Open a tool card.
-6. Download Markdown and JSON.
-7. Click `Send feedback`.
-8. Check the layout on a phone-sized browser window.
-
-## 5. Create the beta tag
-
-After the public deployment passes:
-
-```powershell
-git tag -a v0.1.0-beta.1 -m "OmicsRoute public beta 0.1.0-beta.1"
-git push origin v0.1.0-beta.1
-```
-
-The release tag should point to the exact commit that was deployed and tested.
+Completed benchmark records remain on the existing branches. This branch adds
+no new performance measurements and requires no precomputation artifact.
