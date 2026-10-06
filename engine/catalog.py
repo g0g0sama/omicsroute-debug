@@ -1,3 +1,5 @@
+from copy import deepcopy
+from functools import lru_cache
 from pathlib import Path
 
 import yaml
@@ -24,12 +26,14 @@ DATA_DIR = (
 # YAML LOADING
 # ==================================================
 
-def load_yaml(filename):
+def _file_signature(filename):
+    filepath = (DATA_DIR / filename).resolve()
+    stat = filepath.stat()
+    return filepath, stat.st_mtime_ns, stat.st_size
 
-    filepath = (
-        DATA_DIR
-        / filename
-    )
+
+@lru_cache(maxsize=32)
+def _load_yaml_cached(filepath, modified_ns, file_size):
 
     with open(
         filepath,
@@ -45,6 +49,11 @@ def load_yaml(filename):
         return {}
 
     return data
+
+
+def load_yaml(filename):
+    """Cache catalogue YAML until its file version changes."""
+    return _load_yaml_cached(*_file_signature(filename))
 
 
 def load_analysis_catalog():
@@ -65,14 +74,15 @@ def load_workflows():
 # WORKFLOW CONTEXT INDEX
 # ==================================================
 
-def build_workflow_context_index():
+@lru_cache(maxsize=8)
+def _workflow_context_index_cached(filepath, modified_ns, file_size):
     """
     Create a simplified index of all implemented
     BioFlow workflow contexts.
     """
 
     workflows = (
-        load_workflows()
+        _load_yaml_cached(filepath, modified_ns, file_size)
     )
 
     index = []
@@ -142,6 +152,13 @@ def build_workflow_context_index():
     return index
 
 
+def build_workflow_context_index():
+    # Callers can annotate returned contexts without changing the cached index.
+    return deepcopy(
+        _workflow_context_index_cached(*_file_signature("workflows.yaml"))
+    )
+
+
 # ==================================================
 # GOAL SUPPORT
 # ==================================================
@@ -201,6 +218,7 @@ def get_catalog_status():
     )
 
     result = []
+    index = build_workflow_context_index()
 
     for (
         family_id,
@@ -232,12 +250,11 @@ def get_catalog_status():
                 )
             )
 
-            contexts = (
-                find_goal_contexts(
-                    sample_type,
-                    goal_label
-                )
-            )
+            contexts = [
+                item for item in index
+                if item["sample_type"] == sample_type
+                and item["goal"] == goal_label
+            ]
 
             supported = (
                 len(contexts)

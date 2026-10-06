@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import asynccontextmanager
 from functools import lru_cache
 import os
 from typing import Any
@@ -8,6 +9,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from api.coverage import get_startup_coverage
 from engine.catalog import get_global_coverage
 from engine.constraints import (
     evaluate_tool_constraints,
@@ -84,9 +86,17 @@ def _cors_origins() -> list[str]:
     return [item.strip() for item in raw.split(",") if item.strip()]
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Warm the snapshot before accepting requests, including after idle wake-up.
+    get_startup_coverage()
+    yield
+
+
 app = FastAPI(
     title="OmicsRoute API",
     version=API_VERSION,
+    lifespan=lifespan,
     description=(
         "API layer for the OmicsRoute evidence-aware "
         "bioinformatics workflow recommendation engine."
@@ -1012,14 +1022,14 @@ def discovery(request: DiscoveryRequest):
 def catalog_coverage(
     validate_dependencies: bool = False,
 ):
-    coverage = get_global_coverage()
-
     if not validate_dependencies:
         return {
-            **coverage,
+            **get_startup_coverage(),
             "dependency_audit": False,
         }
 
+    # Audits use current catalogue files and never annotate the startup snapshot.
+    coverage = get_global_coverage()
     workflows = load_workflows()
     reports = {
         workflow_id: validate_workflow(workflow_id)
